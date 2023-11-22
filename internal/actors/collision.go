@@ -32,7 +32,7 @@ func HandleCollision(tanks *[]Tank, levelObjects []levels.LevelBlock) {
 
             // Turn enemy tanks randomly to the left or right if they collide
             // with level objects. That way they can keep moving towards the base
-            if !(*tanks)[ti].Player {
+            if !(*tanks)[ti].IsPlayer {
                 // Check if enough time has passed since the last collision
                 if time.Since((*tanks)[ti].LastCollisionTime) > time.Second {
                     // Randomly turn left or right
@@ -162,8 +162,8 @@ func dotProduct(v1, v2 Vector) float64 {
 
 func moveActorToPreviousPosition(tank *Tank) {
     // Avoid getting tanks stuck next to level objects
-    tank.Hull.X = tank.Hull.PrevX
-    tank.Hull.Y = tank.Hull.PrevY
+    tank.X = tank.PrevX
+    tank.Y = tank.PrevY
 }
 
 func checkProjectileCollisions(tanks *[]Tank, levelObjects []levels.LevelBlock) {

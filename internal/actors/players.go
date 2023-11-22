@@ -24,24 +24,6 @@ const (
 )
 
 
-// Define a projectile struct
-type Projectile struct {
-    X         float64
-    Y         float64
-    VelocityX float64
-    VelocityY float64
-    Angle     float64
-    Width     float64
-    Height    float64
-    Collided  bool
-}
-
-type Explosion struct {
-    X     float64
-    Y     float64
-    Frame int
-}
-
 
 func HandleMovement(t *Tank) {
     if t.CanMove {
@@ -54,17 +36,17 @@ func HandleMovement(t *Tank) {
             updateCollisionBox(t)
         }
         if ebiten.IsKeyPressed(ebiten.KeyW) {
-            t.Hull.PrevX = t.Hull.X
-            t.Hull.PrevY = t.Hull.Y
-            t.Hull.X += t.Hull.Speed * math.Cos(-t.Hull.Angle*math.Pi/180.0)
-            t.Hull.Y += t.Hull.Speed * math.Sin(t.Hull.Angle*math.Pi/180.0)
+            t.PrevX = t.X
+            t.PrevY = t.Y
+            t.X += t.Hull.Speed * math.Cos(-t.Hull.Angle*math.Pi/180.0)
+            t.Y += t.Hull.Speed * math.Sin(t.Hull.Angle*math.Pi/180.0)
             updateCollisionBox(t)
         }
         if ebiten.IsKeyPressed(ebiten.KeyS) {
-            t.Hull.PrevX = t.Hull.X
-            t.Hull.PrevY = t.Hull.Y
-            t.Hull.X -= t.Hull.ReverseSpeed * math.Cos(-t.Hull.Angle*math.Pi/180.0)
-            t.Hull.Y -= t.Hull.ReverseSpeed * math.Sin(t.Hull.Angle*math.Pi/180.0)
+            t.PrevX = t.X
+            t.PrevY = t.Y
+            t.X -= t.Hull.ReverseSpeed * math.Cos(-t.Hull.Angle*math.Pi/180.0)
+            t.Y -= t.Hull.ReverseSpeed * math.Sin(t.Hull.Angle*math.Pi/180.0)
             updateCollisionBox(t)
         }
 
@@ -76,22 +58,18 @@ func HandleMovement(t *Tank) {
         }
     
         // Ensure the tank stays within the game world bounds
-        if t.Hull.X < minXCoordinates {
-            t.Hull.X = minXCoordinates
+        if t.X < minXCoordinates {
+            t.X = minXCoordinates
         }
-        if t.Hull.X > maxXCoordinates {
-            t.Hull.X = maxXCoordinates
+        if t.X > maxXCoordinates {
+            t.X = maxXCoordinates
         }
-        if t.Hull.Y < minYCoordinates {
-            t.Hull.Y = minYCoordinates
+        if t.Y < minYCoordinates {
+            t.Y = minYCoordinates
         }
-        if t.Hull.Y > maxYCoordinates {
-            t.Hull.Y = maxYCoordinates
+        if t.Y > maxYCoordinates {
+            t.Y = maxYCoordinates
         }
-    
-        // Update the turret's position relative to the base
-        t.Turret.X = t.Hull.X
-        t.Turret.Y = t.Hull.Y
     }
 
     if ebiten.IsKeyPressed(ebiten.KeySpace) && t.Turret.ReloadTimer == 0 {
@@ -107,8 +85,8 @@ func updateCollisionBox (t *Tank) {
     offsetY := float64(t.Hull.Height) / 2
 
     // Convert tank's game logic coordinates to screen coordinates
-    tankXScreen := t.Hull.X / gameLogicToScreenXOffset
-    tankYScreen := t.Hull.Y / gameLogicToScreenYOffset
+    tankXScreen := t.X / gameLogicToScreenXOffset
+    tankYScreen := t.Y / gameLogicToScreenYOffset
 
     // Calculate the rotation angle in radians
     angleRad := t.Hull.Angle * math.Pi / 180
@@ -139,7 +117,7 @@ func NoPlayersLeft(tanks []Tank) bool {
 func CountPlayerTanks(tanks []Tank) int {
 	count := 0
 	for _, tank := range tanks {
-		if tank.Player && tank.Health > 0 {
+		if tank.IsPlayer && tank.Health > 0 {
 			count++
 		}
 	}
@@ -151,12 +129,12 @@ func ResetPlayerPositions(tanks *[]Tank) {
     for i := range *tanks {
         t := &(*tanks)[i]
 		if t.Name == "player1" {
-			t.Hull.X   = 1850.0
-            t.Hull.Y   = 4730.0
+			t.X   = 1850.0
+            t.Y   = 4730.0
 		}
         if t.Name == "player2" {
-			t.Hull.X   = 3280.0
-            t.Hull.Y   = 4730.0
+			t.X   = 3280.0
+            t.Y   = 4730.0
 		}
         t.Hull.Angle   = -90.0
         t.Turret.Angle = -90.0

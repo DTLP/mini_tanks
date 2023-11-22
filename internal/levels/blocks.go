@@ -89,7 +89,7 @@ func AddLevelBlock(x, y int, blockType string) LevelBlock {
     switch blockType {
 	// Bricks
     case "b":
-        block.Image.Path   = "resources/Brick_Block_small.png"
+        block.Image.Path   = "resources/bricks.png"
 	// Camo net
 	case "c":
 		block.Image.Path   = "resources/camo_net.png"
@@ -257,4 +257,15 @@ func PlayerBaseLevelBlock() LevelBlock {
 			},
 		},
 	}
+}
+
+
+type ObjectUpdate struct {
+    Type          string   `json:"Type"`
+	X             float64  `json:"X"`
+	Y       	  float64  `json:"Y"`
+	Width         float64  `json:"Width"`
+	Height        float64  `json:"Height"`
+	Blocks		  []Block  `json:"Blocks"`
+	Health     	  int      `json:"Health"`
 }

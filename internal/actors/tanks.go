@@ -22,8 +22,8 @@ var (
     progressBar ProgressBar
     progressBarFilled ProgressBar
     // Define the offset of the progress bar from the tank
-    barOffsetX = 0 // Adjust this value as needed
-    barOffsetY = 10 // Adjust this value as needed
+    barOffsetX = 0
+    barOffsetY = 10
     barWidth   = 300
     barHeight  = 5
 )
@@ -35,12 +35,15 @@ type Tanks struct{
 type Tank struct {
     X               float64
     Y               float64
+    PrevX           float64
+    PrevY           float64
     MaxHealth       int
     Health          int
     HealthBarWidth  int
     HealthBarHeight int
 	Name			string
-	Player          bool
+    IsPlayer        bool
+    Player          int
     CanMove         bool
 
     Hull            Hull
@@ -55,8 +58,6 @@ type Tank struct {
 }
 
 type Hull struct {
-    X               float64
-    Y               float64
     PrevX           float64
     PrevY           float64
     Width           float64
@@ -78,8 +79,6 @@ type Hull struct {
 }
 
 type Turret struct {
-    X               float64
-    Y               float64
     Width           float64
     Height          float64
     Length          float64
@@ -94,6 +93,23 @@ type Turret struct {
     ProgressBar     ProgressBar
 }
 
+type Projectile struct {
+    X         float64
+    Y         float64
+    VelocityX float64
+    VelocityY float64
+    Angle     float64
+    Width     float64
+    Height    float64
+    Collided  bool
+}
+
+type Explosion struct {
+    X     float64
+    Y     float64
+    Frame int
+}
+
 func NewTank(name string) Tank {
     // Default preset
     tank := Tank{
@@ -106,7 +122,8 @@ func NewTank(name string) Tank {
         ReloadBarWidth:  50,
         ReloadBarHeight: 5,
 		Name:			 name,
-		Player:          false,
+		IsPlayer:        false,
+        Player:          0,
         CanMove:         true,
 
 		Hull: Hull{
@@ -134,19 +151,19 @@ func NewTank(name string) Tank {
 
     switch name {
     case "player1":
-		tank.Player   = true
+		tank.IsPlayer = true
+        tank.Player   = 1
 		tank.X        = 1850 // Spawn next to the base
 		tank.Y        = 4730
-		tank.Hull.X   = tank.X
-		tank.Hull.Y   = tank.Y
-		tank.Turret.X = tank.Hull.X
-		tank.Turret.Y = tank.Hull.Y
+		tank.X   = tank.X
+		tank.Y   = tank.Y
 	case "player2":
-		tank.Player   = true
-		tank.X        = 2200
+		tank.IsPlayer = true
+        tank.Player   = 2
+		tank.X        = 2200 // Spawn next to the base
 		tank.Hull.Image = "resources/brown_tank_hull.png"
 		tank.Turret.Image = "resources/brown_tank_turret.png"
-    case "enemy":
+    default:
         rand.Seed(time.Now().UnixNano())
         spawnOptions := [][]int{{270, 270}, {2500, 270}, {4800, 270}}
         randomSpawn := spawnOptions[rand.Intn(len(spawnOptions))]
@@ -162,15 +179,8 @@ func NewTank(name string) Tank {
         tank.Turret.RotationSpeed = 1.0
         tank.Turret.ReloadTime    = 200.0
         tank.Turret.Image = "resources/grey_tank_turret.png"
-
-		// Assign a random name to the enemy tank
-		tank.Name = enemyNames[rand.Intn(len(enemyNames))]
+        tank.Name = name
     }
-
-    tank.Hull.X   = tank.X
-    tank.Hull.Y   = tank.Y
-    tank.Turret.X = tank.Hull.X
-    tank.Turret.Y = tank.Hull.Y
 
 	updateCollisionBox(&tank)
 
@@ -179,8 +189,8 @@ func NewTank(name string) Tank {
 
 func addProjectile(t *Tank) []Projectile {
     newProjectile := Projectile{
-        X:         t.Turret.X,
-        Y:         t.Turret.Y,
+        X:         t.X,
+        Y:         t.Y,
         VelocityX: t.Turret.ProjectileSpeed,
         VelocityY: t.Turret.ProjectileSpeed,
         Angle:     t.Turret.Angle,
@@ -272,8 +282,8 @@ func updateGunReloadTimer(t *Tank) {
         filledWidth := int(float64(barWidth) * progressPercentage)
 
         // Update the progress bar's position and size
-        progressBar.X = int(t.Hull.X - float64(barWidth)/2)
-        progressBar.Y = int(t.Hull.Y + t.Hull.Height/2 + float64(barOffsetY))
+        progressBar.X = int(t.X - float64(barWidth)/2)
+        progressBar.Y = int(t.Y + t.Hull.Height/2 + float64(barOffsetY))
         progressBar.Width = barWidth        
         progressBar.Height = barHeight
         progressBar.FilledWidth = filledWidth
@@ -302,7 +312,7 @@ func tankIsAlive(tank Tank) bool {
         TanksKilled = append(TanksKilled, entry)
 
         // Increase killed enemy count
-        if !tank.Player {
+        if !tank.IsPlayer {
             killedEnemies += 1
         }
 
@@ -321,11 +331,32 @@ func shoot(t *Tank) {
 
     // Create an instance of ProgressBar and set its values
     progressBar := ProgressBar{
-        X:           int(t.Hull.X / gameLogicToScreenXOffset),
-        Y:           int(t.Hull.Y / gameLogicToScreenYOffset) + 50,
+        X:           int(t.X / gameLogicToScreenXOffset),
+        Y:           int(t.Y / gameLogicToScreenYOffset) + 50,
         Width:       50,
         FilledWidth: 0,
         Height:      5,
     }
     t.Turret.ProgressBar = progressBar
+}
+
+
+
+type TankUpdate struct {
+    Type        string   `json:"Type"`
+    X        	float64  `json:"X"`
+    Y		  	float64  `json:"Y"`
+    Name        string   `json:"Name"`
+    HullAngle		float64  `json:"HullAngle"`
+    HullCollisionX1 float64  `json:"X1"`
+    HullCollisionY1 float64  `json:"Y1"`
+    HullCollisionX2 float64  `json:"X2"`
+    HullCollisionY2 float64  `json:"Y2"`
+    HullCollisionX3 float64  `json:"X3"`
+    HullCollisionY3 float64  `json:"Y3"`
+    HullCollisionX4 float64  `json:"X4"`
+    HullCollisionY4 float64  `json:"Y4"`
+    TurretAngle     float64  `json:"TurretAngle"`
+    Projectiles     []Projectile `json:"Projectiles"`
+    Explosions      []Explosion  `json:"Explosions"`
 }

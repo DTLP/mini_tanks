@@ -2,11 +2,12 @@ package actors
 
 import (
     // "fmt"
+	// "math/rand"
 )
 
 var (
 	enemies         []Tank
-	maxEnemies      = 3
+	MaxEnemies      = 3
 	TotalEnemiesNum = 10
     killedEnemies   = 0
 )
@@ -22,12 +23,13 @@ var enemyNames = []string{"Albert", "Allen", "Bert", "Bob",
 						"Ulric", "Ulysses", "Uri", "Waldo",
 						"Wally", "Walt", "Wesley", "Yanni",
 						"Yogi", "Yuri"}
+var levelEnemyNames []string
 
 func CheckEnemyCount(tanks []Tank) []Tank {
 	// Check if there are enough enemy tanks on the screen
 	count := CountNonPlayerTanks(tanks)
 
-    if count < maxEnemies && killedEnemies+count < TotalEnemiesNum {
+    if count < MaxEnemies && killedEnemies+count < TotalEnemiesNum {
 		// Spawn more if needed
         return AddEnemy(tanks)
     }
@@ -39,7 +41,7 @@ func CountNonPlayerTanks(tanks []Tank) int {
 	count := 0
 
 	for _, tank := range tanks {
-		if !tank.Player {
+		if !tank.IsPlayer {
 			count++
 		}
 	}
@@ -49,7 +51,7 @@ func CountNonPlayerTanks(tanks []Tank) int {
 
 func AddEnemy(tanks []Tank) []Tank {
     // Append a new enemy to the slice
-    newEnemy := NewTank("enemy")
+    newEnemy := NewTank(getUniqueEnemyName())
 
     updateCollisionBox(&newEnemy)
 
@@ -58,9 +60,19 @@ func AddEnemy(tanks []Tank) []Tank {
     return tanks
 }
 
+func getUniqueEnemyName() string {
+    if len(levelEnemyNames) == 0 {
+		// Repopulate LevelEnemyNames with the original names if empty
+		levelEnemyNames = append(levelEnemyNames, enemyNames...)
+    }
+	name := levelEnemyNames[0]
+	levelEnemyNames = levelEnemyNames[1:]
+
+	return name
+}
+
 func NoEnemiesLeft(tanks []Tank) bool {
     if CountNonPlayerTanks(tanks) == 0 && killedEnemies == TotalEnemiesNum {
-
 		// Reset killed enemy count for next level
 		killedEnemies = 0
 

@@ -5,7 +5,7 @@ import (
 	"github.com/DTLP/mini_tanks/internal/actors"
 	"github.com/DTLP/mini_tanks/internal/scene"
 
-	// "fmt"
+	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -22,12 +22,14 @@ const (
 )
 
 var (
-	player       = 0
+	player       = 1
 	levelNum     = 0
 	levelObjects = []levels.LevelBlock{}
 
 	gameOver     = false
+	gameMode     = 0
 )
+
 
 type Game struct {
 	Tanks 		  []actors.Tank
@@ -36,6 +38,7 @@ type Game struct {
 
 func init() {
 	//
+	fmt.Printf("")
 }
 
 func NewGame() *Game {
@@ -58,27 +61,78 @@ func (g *Game) Update() error {
 
 	// Main Menu logic
 	if levelNum == 0 {
-		actors.MainMenu(&g.Tanks, &levelNum)
+		mainMenu(&g.Tanks, &levelNum)
 		if levelNum == 1 {
 			levelObjects = levels.GetLevelObjects(levelNum)
 		}
 	}
 
+	// Coop login
+	if gameMode == 1 && !doesPlayer2Exist(g.Tanks) {
+		g.Tanks = append(g.Tanks, actors.NewTank("player2"))
+	}
 	
-
-	// Read player input
+	// Local: Read player input
 	for i, _ := range g.Tanks {
-		if g.Tanks[i].Player {
+		if g.Tanks[i].Player == player {
 			actors.HandleMovement(&g.Tanks[i])
 		}
 	}
+
+	// Coop: Client: Send input to server if in coop
+	if gameMode == 1 && player == 2 {
+		for i, _ := range g.Tanks {
+			if g.Tanks[i].Player == 2  {
+				sendTankState(g.Tanks[i])
+			}
+		}
+	}
+	// Coop: Server: Get input from client concurrently
+	if gameMode == 1 && player == 1 {
+		go func() {
+			processUpdatesFromClient(&g.Tanks)
+		}()
+	}
+	// Coop: Server: Send update to client
+	if gameMode == 1 && player == 1 {
+		go func() {
+			// Send level num
+			sendLevelNumtoClient(levelNum)
+
+			// Create a copy of the slice
+			tanksCopy := make([]actors.Tank, len(g.Tanks))
+			copy(tanksCopy, g.Tanks)
+
+			// Send tanks
+			for i := 0; i < len(tanksCopy); i++ {
+				if tanksCopy[i].Player != 2 {
+					sendTankState(tanksCopy[i])
+				}
+			}
+
+			// Send level objects
+			for i := range levelObjects {
+				sendLevelObjectToClient(levelObjects[i])
+			}
+		}()
+	}
+	// Coop: Client: Get update from server
+	if gameMode == 1 && player == 2 {
+		go func() {
+			processUpdatesFromServer(&g.Tanks, &levelNum, &levelObjects)
+		}()
+	}
+	
 
 	// Tank hull and projectile collisions
 	actors.HandleCollision(&g.Tanks, levelObjects)
 
 	actors.Update(&g.Tanks)
 
-	actors.UpdateEnemyLogic(&g.Tanks, levelObjects)
+	// Only host is processing enemy logic
+	if player == 1 {
+		actors.UpdateEnemyLogic(&g.Tanks, levelObjects)
+	}
 
 	g.Tanks = actors.GetUpdatedTankList(g.Tanks)
 
@@ -90,6 +144,7 @@ func (g *Game) Update() error {
 		// Progress to next level, reset tanks, get new level layout
 		levelNum += 1
 		actors.ResetPlayerPositions(&g.Tanks)
+		// actors.LevelEnemyNames = actors.EnemyNames
 		levelObjects = levels.GetLevelObjects(levelNum)
 	}
 
@@ -115,7 +170,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw Main Menu
 	if levelNum == 0 {
-		scene.DrawLevelZero(screen)
+		scene.DrawMainMenu(g.Tanks, menuStage, screen)
 	}
 
 	// Draw actors
@@ -125,8 +180,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw level objects
     for _, t := range g.Tanks {
-        if t.Player {
-			scene.DrawLevel(levelObjects, t.Hull.X, t.Hull.Y, screen)
+        if t.IsPlayer && t.Player == player {
+			scene.DrawLevel(levelObjects, t.X, t.Y, screen)
 
 		}
 	}
@@ -151,6 +206,7 @@ func restartGame() ([]actors.Tank, []levels.LevelBlock) {
 
 	var tanks []actors.Tank
 	tanks = append(tanks, actors.NewTank("player1"))
+	// actors.LevelEnemyNames = actors.EnemyNames
 	levelObjects = levels.GetLevelObjects(levelNum)
 
 	return tanks, levelObjects

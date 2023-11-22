@@ -39,6 +39,7 @@ const (
 var (
 	logoImg, bgImage *ebiten.Image
 	playButtonImg, exitButtonImg, soloButtonImg, coopButtonImg *ebiten.Image
+	hostButtonImg, joinButtonImg, backButtonImg *ebiten.Image
 	shadowImage   = ebiten.NewImage(screenWidth, screenHeight)
 	triangleImage = ebiten.NewImage(screenWidth, screenHeight)
 )
@@ -164,11 +165,17 @@ func init() {
 	soloButtonImg = soloButtonImage
 	coopButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/coop_button.png")
 	coopButtonImg = coopButtonImage
+	hostButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/host_button.png")
+	hostButtonImg = hostButtonImage
+	joinButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/join_button.png")
+	joinButtonImg = joinButtonImage
+	backButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/back_button.png")
+	backButtonImg = backButtonImage
 	exitButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/exit_game_button.png")
 	exitButtonImg = exitButtonImage
 }
 
-func DrawLevelZero(screen *ebiten.Image) {
+func DrawMainMenu(tanks []actors.Tank, menuStage string, screen *ebiten.Image) {
 
 	// Draw Game logo
 	logoOp := &ebiten.DrawImageOptions{}
@@ -178,7 +185,7 @@ func DrawLevelZero(screen *ebiten.Image) {
 
 	drawKeyboard(screen)
 
-	drawMenuButtons(screen)
+	drawMenuButtons(tanks, menuStage, screen)
 
 	credsText := "github.com/DTLP"
 	text.Draw(screen, credsText, mplusNormalFont, 700, 50, color.Black)
@@ -266,14 +273,14 @@ func drawKeyboard(screen *ebiten.Image) {
 
 }
 
-func drawMenuButtons(screen *ebiten.Image) {
+func drawMenuButtons(tanks []actors.Tank, menuStage string, screen *ebiten.Image) {
 	// Play
-	if actors.MenuStage == "init" {
+	if menuStage == "init" {
 		buttonPlayOp := &ebiten.DrawImageOptions{}
 		buttonPlayOp.GeoM.Translate(700, 450)
 		screen.DrawImage(playButtonImg, buttonPlayOp)
 	}
-	if actors.MenuStage == "play" {
+	if menuStage == "play" {
 		// Solo
 		buttonSoloOp := &ebiten.DrawImageOptions{}
 		buttonSoloOp.GeoM.Translate(700, 450)
@@ -281,11 +288,38 @@ func drawMenuButtons(screen *ebiten.Image) {
 		// Co-op
 		buttonCoopOp := &ebiten.DrawImageOptions{}
 		buttonCoopOp.GeoM.Translate(700, 550)
-		alpha := float64(128) / 255.0
-		buttonCoopOp.ColorM.Scale(1, 1, 1, alpha)
+		// alpha := float64(128) / 255.0
+		// buttonCoopOp.ColorM.Scale(1, 1, 1, alpha)
 		screen.DrawImage(coopButtonImg, buttonCoopOp)
 		// Exit
 	}
+	if menuStage == "coop" {
+		// Host
+		buttonHostOp := &ebiten.DrawImageOptions{}
+		buttonHostOp.GeoM.Translate(700, 450)
+		screen.DrawImage(hostButtonImg, buttonHostOp)
+		// Join
+		buttonJoinOp := &ebiten.DrawImageOptions{}
+		buttonJoinOp.GeoM.Translate(700, 550)
+		screen.DrawImage(joinButtonImg, buttonJoinOp)
+		// Back
+		buttonBackOp := &ebiten.DrawImageOptions{}
+		buttonBackOp.GeoM.Translate(700, 650)
+		screen.DrawImage(backButtonImg, buttonBackOp)
+	}
+	if menuStage == "host" {
+		if actors.CountPlayerTanks(tanks) == 2 {
+			// Play button
+			buttonPlayOp := &ebiten.DrawImageOptions{}
+			buttonPlayOp.GeoM.Translate(700, 450)
+			screen.DrawImage(playButtonImg, buttonPlayOp)
+		}
+		// Back
+		buttonBackOp := &ebiten.DrawImageOptions{}
+		buttonBackOp.GeoM.Translate(700, 650)
+		screen.DrawImage(backButtonImg, buttonBackOp)
+	}
+	// Exit
 	buttonExitOp := &ebiten.DrawImageOptions{}
 	buttonExitOp.GeoM.Translate(700, 875)
 	screen.DrawImage(exitButtonImg, buttonExitOp)

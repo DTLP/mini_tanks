@@ -1,12 +1,14 @@
-package actors
+package game
 
 import (
+	"github.com/DTLP/mini_tanks/internal/actors"
+
 	"os"
 	// "fmt"
+	// "time"
 )
 
-var MenuStage = "init"
-var levelNum int
+var menuStage = "init"
 
 type Coordinates struct {
 	X float64
@@ -21,6 +23,7 @@ var (
 	coopButton Coordinates
 	hostButton Coordinates
 	joinButton Coordinates
+	backButton Coordinates
 	exitButton Coordinates
 )
 
@@ -55,6 +58,12 @@ func init () {
 		Width: 250.0,
 		Height: 74.0,
 	}
+	backButton = Coordinates{
+		X: 700.0,
+		Y: 650.0,
+		Width: 250.0,
+		Height: 74.0,
+	}
 	exitButton = Coordinates{
 		X: 700.0,
 		Y: 875.0,
@@ -63,54 +72,85 @@ func init () {
 	}
 }
 
-func MainMenu(tanks *[]Tank, levelNum *int) {
-	maxEnemies = 0
+func mainMenu(tanks *[]actors.Tank, levelNum *int) {
+	actors.MaxEnemies = 0
 	checkIfMenuButtonIsSelected(tanks, levelNum)
 }
 
-func checkIfMenuButtonIsSelected(tanks *[]Tank, levelNum *int) {
+func checkIfMenuButtonIsSelected(tanks *[]actors.Tank, levelNum *int) {
 	for ti, t := range *tanks {
 		for pi, p := range t.Projectiles {
 			pX := p.X / gameLogicToScreenXOffset
 			pY := p.Y / gameLogicToScreenYOffset
 
-			if MenuStage == "init" {
+			if menuStage == "init" {
 				// Play button
 				if checkMenuCollision(pX, pY, playButton.X, playButton.Y, playButton.X+playButton.Width, playButton.Y+playButton.Height) {
 					(*tanks)[ti].Projectiles[pi].Collided = true
-					MenuStage = "play"
+					menuStage = "play"
 					continue
 				}
 			}
-			if MenuStage == "play" {
+			if menuStage == "play" {
 				// Solo button
 				if checkMenuCollision(pX, pY, soloButton.X, soloButton.Y, soloButton.X+soloButton.Width, soloButton.Y+soloButton.Height) {
 					(*tanks)[ti].Projectiles[pi].Collided = true
 					// Start game
+					actors.ResetPlayerPositions(tanks)
 					*levelNum = 1
-					ResetPlayerPositions(tanks)
-					maxEnemies = 3
+					actors.MaxEnemies = 3
 				}
-				// Coop button - not available yet
-				// if checkMenuCollision(pX, pY, coopButton.X, coopButton.Y, coopButton.X+coopButton.Width, coopButton.Y+coopButton.Height) {
-				// 	(*tanks)[ti].Projectiles[pi].Collided = true
-				// 	MenuStage = "coop"
-				// 	continue
-				// }
+				// Coop button
+				if checkMenuCollision(pX, pY, coopButton.X, coopButton.Y, coopButton.X+coopButton.Width, coopButton.Y+coopButton.Height) {
+					(*tanks)[ti].Projectiles[pi].Collided = true
+					menuStage = "coop"
+					continue
+				}
 			}
-			if MenuStage == "coop" {
-				// Check if p.X and p.Y are within hostButton rectangle
+			if menuStage == "coop" {
+				// Host button
 				if checkMenuCollision(pX, pY, hostButton.X, hostButton.Y, hostButton.X+hostButton.Width, hostButton.Y+hostButton.Height) {
-
+					(*tanks)[ti].Projectiles[pi].Collided = true
+					menuStage = "host"
+					hostNewCoopGame()
 					continue
 				}
-				// Check if p.X and p.Y are within joinButton rectangle
+				// Join button
 				if checkMenuCollision(pX, pY, joinButton.X, joinButton.Y, joinButton.X+joinButton.Width, joinButton.Y+joinButton.Height) {
-
+					(*tanks)[ti].Projectiles[pi].Collided = true
+					menuStage = "join"
+					joinNewCoopGame()
+					continue
+				}
+				// Back button
+				if checkMenuCollision(pX, pY, backButton.X, backButton.Y, backButton.X+backButton.Width, backButton.Y+backButton.Height) {
+					(*tanks)[ti].Projectiles[pi].Collided = true
+					menuStage = "play"
 					continue
 				}
 			}
-			// Check if p.X and p.Y are within exitButton rectangle
+			if menuStage == "host" || menuStage == "join" {
+				// Add message:
+				// Waiting for your friend to connect
+				// Give them this IP address: 
+				if actors.CountPlayerTanks(*tanks) == 2 {
+					// Play button
+					if checkMenuCollision(pX, pY, playButton.X, playButton.Y, playButton.X+playButton.Width, playButton.Y+playButton.Height) {
+						(*tanks)[ti].Projectiles[pi].Collided = true
+						// Start game
+						actors.ResetPlayerPositions(tanks)
+						*levelNum = 1
+						actors.MaxEnemies = 3
+						}
+				}
+				// Back button
+				if checkMenuCollision(pX, pY, backButton.X, backButton.Y, backButton.X+backButton.Width, backButton.Y+backButton.Height) {
+					(*tanks)[ti].Projectiles[pi].Collided = true
+					menuStage = "coop"
+					continue
+				}
+			}
+			// Exit Game button
 			if checkMenuCollision(pX, pY, exitButton.X, exitButton.Y, exitButton.X+exitButton.Width, exitButton.Y+exitButton.Height) {
 				// Close game
 				os.Exit(0)

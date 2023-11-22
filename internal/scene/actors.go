@@ -72,8 +72,8 @@ func drawHealthBar(t *actors.Tank, screen *ebiten.Image) {
     }
 
     op := &ebiten.DrawImageOptions{}
-    op.GeoM.Translate(float64(t.Hull.X / gameLogicToScreenXOffset - 32),
-			float64(t.Hull.Y / gameLogicToScreenYOffset + 35))
+    op.GeoM.Translate(float64(t.X / gameLogicToScreenXOffset - 32),
+			float64(t.Y / gameLogicToScreenYOffset + 35))
     screen.DrawImage(ebiten.NewImageFromImage(filledRect), op)
 
 }
@@ -106,8 +106,8 @@ func drawReloadBar(t *actors.Tank, screen *ebiten.Image) {
     }
 
     op := &ebiten.DrawImageOptions{}
-    op.GeoM.Translate(float64(t.Hull.X / gameLogicToScreenXOffset - 32),
-			float64(t.Hull.Y / gameLogicToScreenYOffset + 40))
+    op.GeoM.Translate(float64(t.X / gameLogicToScreenXOffset - 32),
+			float64(t.Y / gameLogicToScreenYOffset + 40))
     screen.DrawImage(ebiten.NewImageFromImage(filledRect), op)
 
 }
@@ -124,7 +124,7 @@ func drawTankHull(t *actors.Tank, screen *ebiten.Image) {
     // Rotate the hull
     op.GeoM.Rotate(t.Hull.Angle * math.Pi / 180.0)
     // Translate to the final position
-    op.GeoM.Translate(t.Hull.X, t.Hull.Y)
+    op.GeoM.Translate(t.X, t.Y)
     // Scale tank's hull
     op.GeoM.Scale(float64(t.Hull.Width)/float64(bodyImg.Bounds().Dx()), float64(t.Hull.Height)/float64(bodyImg.Bounds().Dy()))
     // Draw tank hull
@@ -159,7 +159,7 @@ func drawTankTurret(t *actors.Tank, screen *ebiten.Image) {
 
     op.GeoM.Translate(-turretOffsetX, -turretOffsetY)
     op.GeoM.Rotate(t.Turret.Angle * math.Pi / 180.0)
-    op.GeoM.Translate(t.Turret.X, t.Turret.Y)
+    op.GeoM.Translate(t.X, t.Y)
     op.GeoM.Scale(float64(t.Turret.Width)/float64(turretImg.Bounds().Dx()), float64(t.Turret.Height)/float64(turretImg.Bounds().Dy()))
     screen.DrawImage(turretImg, op)
 
