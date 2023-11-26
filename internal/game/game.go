@@ -67,11 +67,6 @@ func (g *Game) Update() error {
 		}
 	}
 
-	// Coop login
-	if gameMode == 1 && !doesPlayer2Exist(g.Tanks) {
-		g.Tanks = append(g.Tanks, actors.NewTank("player2"))
-	}
-	
 	// Local: Read player input
 	for i, _ := range g.Tanks {
 		if g.Tanks[i].Player == player {
@@ -79,50 +74,143 @@ func (g *Game) Update() error {
 		}
 	}
 
-	// Coop: Client: Send input to server if in coop
-	if gameMode == 1 && player == 2 {
-		for i, _ := range g.Tanks {
-			if g.Tanks[i].Player == 2  {
-				sendTankState(g.Tanks[i])
-			}
-		}
+
+	// // Coop login
+	// if gameMode == 1 && !doesPlayer2Exist(g.Tanks) {
+	// 	g.Tanks = append(g.Tanks, actors.NewTank("player2"))
+	// }
+	
+	// // Coop: Client: Send input to server if in coop
+	// if gameMode == 1 && player == 2 {
+	// 	go func() {
+	// 		for i, _ := range g.Tanks {
+	// 			if g.Tanks[i].Player == 2  {
+	// 				sendTankState(g.Tanks[i])
+	// 			}
+	// 		}
+	// 	}()
+	// }
+	// // Coop: Server: Get input from client concurrently
+	// if gameMode == 1 && player == 1 {
+	// 	go func() {
+	// 		processUpdatesFromClient(&g.Tanks)
+	// 	}()
+	// }
+	// // Coop: Server: Send update to client
+	// if gameMode == 1 && player == 1 {
+	// 	go func() {
+			// // Send level num
+			// sendLevelNumtoClient(levelNum)
+
+			// // Create a copy of the slice
+			// tanksCopy := make([]actors.Tank, len(g.Tanks))
+			// copy(tanksCopy, g.Tanks)
+
+			// // Send tanks
+			// for i := 0; i < len(tanksCopy); i++ {
+			// 	if tanksCopy[i].Player != 2 {
+			// 		sendTankState(tanksCopy[i])
+			// 	}
+			// }
+
+	// 		// Send level objects
+	// 		for i := range levelObjects {
+	// 			sendLevelObjectToClient(levelObjects[i])
+	// 		}
+	// 	}()
+	// }
+	// // Coop: Client: Get update from server
+	// if gameMode == 1 && player == 2 {
+	// 	go func() {
+	// 		processUpdatesFromServer(&g.Tanks, &levelNum, &levelObjects)
+	// 	}()
+	// }
+	
+
+
+
+
+
+
+
+
+
+	// Coop login
+	if gameMode == 1 && !doesPlayer2Exist(g.Tanks) {
+		g.Tanks = append(g.Tanks, actors.NewTank("player2"))
 	}
-	// Coop: Server: Get input from client concurrently
+	// Coop: Server
 	if gameMode == 1 && player == 1 {
+		// // Send updates to client
+		// go func() {
+		// 	sendUpdatesToClient(g.Tanks, levelNum, levelObjects)
+		// }()
+		// // Get updates from client
+		// go func() {
+		// 	processUpdatesFromClient(&g.Tanks)
+		// }()
 		go func() {
+			sendUpdatesToClient(g.Tanks)
 			processUpdatesFromClient(&g.Tanks)
 		}()
 	}
-	// Coop: Server: Send update to client
-	if gameMode == 1 && player == 1 {
-		go func() {
-			// Send level num
-			sendLevelNumtoClient(levelNum)
 
-			// Create a copy of the slice
+
+
+
+	
+
+	// Coop: Client
+	if gameMode == 1 && player == 2 {
+
+		go func() {
 			tanksCopy := make([]actors.Tank, len(g.Tanks))
 			copy(tanksCopy, g.Tanks)
-
-			// Send tanks
 			for i := 0; i < len(tanksCopy); i++ {
-				if tanksCopy[i].Player != 2 {
+				if tanksCopy[i].Player == 2 {
 					sendTankState(tanksCopy[i])
 				}
 			}
 
-			// Send level objects
-			for i := range levelObjects {
-				sendLevelObjectToClient(levelObjects[i])
-			}
-		}()
-	}
-	// Coop: Client: Get update from server
-	if gameMode == 1 && player == 2 {
-		go func() {
+			// for i, _ := range g.Tanks {
+			// 	if g.Tanks[i].Player == 2  {
+			// 		sendTankState(g.Tanks[i])
+			// 	}
+			// }
 			processUpdatesFromServer(&g.Tanks, &levelNum, &levelObjects)
 		}()
 	}
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	// Tank hull and projectile collisions
 	actors.HandleCollision(&g.Tanks, levelObjects)
@@ -139,7 +227,7 @@ func (g *Game) Update() error {
 	// Spawn enemies if more needed
 	g.Tanks = actors.CheckEnemyCount(g.Tanks)
 
-	// If all enemies are dead, get new level layout
+	// If all enemies are dead, proceed to next level
 	if actors.NoEnemiesLeft(g.Tanks) && levelNum != 0 {
 		// Progress to next level, reset tanks, get new level layout
 		levelNum += 1

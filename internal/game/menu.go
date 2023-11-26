@@ -112,14 +112,16 @@ func checkIfMenuButtonIsSelected(tanks *[]actors.Tank, levelNum *int) {
 				if checkMenuCollision(pX, pY, hostButton.X, hostButton.Y, hostButton.X+hostButton.Width, hostButton.Y+hostButton.Height) {
 					(*tanks)[ti].Projectiles[pi].Collided = true
 					menuStage = "host"
-					hostNewCoopGame()
+					// hostNewCoopGame()
+					go startServer()
 					continue
 				}
 				// Join button
 				if checkMenuCollision(pX, pY, joinButton.X, joinButton.Y, joinButton.X+joinButton.Width, joinButton.Y+joinButton.Height) {
 					(*tanks)[ti].Projectiles[pi].Collided = true
 					menuStage = "join"
-					joinNewCoopGame()
+					// joinNewCoopGame()
+					go joinServer()
 					continue
 				}
 				// Back button

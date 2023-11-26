@@ -64,6 +64,38 @@ func startServer() {
     }
 }
 
+func sendUpdatesToClient(tanks []actors.Tank) {
+    go func() {
+        // Send level num
+        sendLevelNumtoClient(levelNum)
+
+        // Create a copy of the slice
+        tanksCopy := make([]actors.Tank, len(tanks))
+        copy(tanksCopy, tanks)
+
+        // Send tanks
+        for i := 0; i < len(tanksCopy); i++ {
+            if tanksCopy[i].Player != 2 {
+                sendTankState(tanksCopy[i])
+            }
+        }
+
+
+
+        levelObjectsCopy := make([]levels.LevelBlock, len(levelObjects))
+        copy(levelObjectsCopy, levelObjects)
+        
+        for i := 0; i < len(levelObjectsCopy); i++ {
+            sendLevelObjectToClient(levelObjectsCopy[i])
+        }
+
+        // Send level objects
+        // for i := range levelObjects {
+        //     sendLevelObjectToClient(levelObjects[i])
+        // }
+    }()
+	
+}
 
 func receiveClientInput(Conn net.Conn) (string, error) {
     buffer := make([]byte, 1024)
@@ -77,7 +109,7 @@ func receiveClientInput(Conn net.Conn) (string, error) {
 
         // Check for forcibly closed connection error
         if opErr, ok := err.(*net.OpError); ok {
-            if opErr.Err.Error() == "An existing connection was forcibly closed by the remote host." {
+            if opErr.Err.Error() == "\n ⚠️An existing connection was forcibly closed by the remote host." {
                 // log("Client forcibly closed the connection")
                 return "", io.EOF
             }
@@ -111,7 +143,7 @@ func handleClientInput() (actors.TankUpdate, error) {
 
     if clientInput == "" {
         // Handle empty input or incomplete JSON
-        return actors.TankUpdate{}, fmt.Errorf("Empty or incomplete JSON input")
+        return actors.TankUpdate{}, fmt.Errorf("\n ⚠️Empty or incomplete JSON input")
     }
 	
     // fmt.Printf("\n Client input: %s\n", clientInput)
@@ -291,20 +323,20 @@ func convertToProjectileSlice(slice interface{}) ([]actors.Projectile, error) {
 
     projectilesData, ok := slice.([]interface{})
     if !ok {
-        return nil, fmt.Errorf("unable to convert to []interface{}")
+        return nil, fmt.Errorf("\n ⚠️unable to convert to []interface{}")
     }
 
     result := make([]actors.Projectile, len(projectilesData))
     for i, p := range projectilesData {
         projectileBytes, err := json.Marshal(p)
         if err != nil {
-            return nil, fmt.Errorf("unable to convert Projectile to the expected type")
+            return nil, fmt.Errorf("\n ⚠️unable to convert Projectile to the expected type")
         }
 
         var projectile actors.Projectile
         err = json.Unmarshal(projectileBytes, &projectile)
         if err != nil {
-            return nil, fmt.Errorf("unable to convert Projectile to the expected type")
+            return nil, fmt.Errorf("\n ⚠️unable to convert Projectile to the expected type")
         }
 
         result[i] = projectile
@@ -320,20 +352,20 @@ func convertToExplosionSlice(slice interface{}) ([]actors.Explosion, error) {
 
     explosionsData, ok := slice.([]interface{})
     if !ok {
-        return nil, fmt.Errorf("unable to convert to []interface{}")
+        return nil, fmt.Errorf("\n ⚠️ unable to convert to []interface{}")
     }
 
     result := make([]actors.Explosion, len(explosionsData))
     for i, e := range explosionsData {
         explosionBytes, err := json.Marshal(e)
         if err != nil {
-            return nil, fmt.Errorf("unable to convert Explosion to the expected type")
+            return nil, fmt.Errorf("\n ⚠️unable to convert Explosion to the expected type")
         }
 
         var explosion actors.Explosion
         err = json.Unmarshal(explosionBytes, &explosion)
         if err != nil {
-            return nil, fmt.Errorf("unable to convert Explosion to the expected type")
+            return nil, fmt.Errorf("\n ⚠️unable to convert Explosion to the expected type")
         }
 
         result[i] = explosion
@@ -350,14 +382,14 @@ func sendTankState(tank actors.Tank) error {
 		Y:		  	     tank.Y,
 		Name:            tank.Name,
 		HullAngle:		 tank.Hull.Angle,
-		HullCollisionX1: tank.Hull.CollisionX1,
-		HullCollisionY1: tank.Hull.CollisionY1,
-		HullCollisionX2: tank.Hull.CollisionX2,
-		HullCollisionY2: tank.Hull.CollisionY2,
-		HullCollisionX3: tank.Hull.CollisionX3,
-		HullCollisionY3: tank.Hull.CollisionY3,
-		HullCollisionX4: tank.Hull.CollisionX4,
-		HullCollisionY4: tank.Hull.CollisionY4,
+		X1: tank.Hull.CollisionX1,
+		Y1: tank.Hull.CollisionY1,
+		X2: tank.Hull.CollisionX2,
+		Y2: tank.Hull.CollisionY2,
+		X3: tank.Hull.CollisionX3,
+		Y3: tank.Hull.CollisionY3,
+		X4: tank.Hull.CollisionX4,
+		Y4: tank.Hull.CollisionY4,
         TurretAngle:     tank.Turret.Angle,
         Projectiles:     tank.Projectiles,
 		Explosions:      tank.Explosions,
@@ -415,9 +447,8 @@ func getUpdates() ([]string, bool) {
         return nil, false
     }
 
-    // Append the received input to the jsonBuffer
-    // jsonBuffer += clientInput
-	fmt.Printf("\n----\nBUFFER: %s", jsonBuffer)
+	// fmt.Printf("\n----\nBUFFER: %s", jsonBuffer)
+
     // Split the string into individual JSON objects
     var updates []string
     decoder := json.NewDecoder(strings.NewReader(jsonBuffer))
@@ -453,8 +484,10 @@ func getUpdates() ([]string, bool) {
         return nil, false
     }
     jsonBuffer = string(remainingJSON)
-	fmt.Printf("\n----\nBUFFER: %s", jsonBuffer)
-	fmt.Printf("\n=============\n")
+
+	// fmt.Printf("\n----\nBUFFER: %s", jsonBuffer)
+	// fmt.Printf("\n=============\n")
+
 	// fmt.Println("\n🦬 jsonBuffer length:", len(jsonBuffer))
 
     return updates, true
@@ -537,29 +570,6 @@ func buildBlocks(blocksData []interface{}) []levels.Block {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func processUpdatesFromServer(tanks *[]actors.Tank, levelNum *int, levelObjects *[]levels.LevelBlock) {
     // ...
 
@@ -588,6 +598,7 @@ func processUpdatesFromServer(tanks *[]actors.Tank, levelNum *int, levelObjects 
 					if *levelNum != int(updateMap["levelNum"].(float64)) {
 						*levelNum = int(updateMap["levelNum"].(float64))
 						*levelObjects = levels.GetLevelObjects(int(updateMap["levelNum"].(float64)))
+                        actors.ResetPlayerPositions(tanks)
 					}
 
 				case "levelObject":
@@ -606,71 +617,6 @@ func processUpdatesFromServer(tanks *[]actors.Tank, levelNum *int, levelObjects 
 }
 
 
-
-
-
-
-
-
-
-
-
-
-// func processUpdatesFromServer(tanks *[]actors.Tank, levelNum *int, levelObjects *[]levels.LevelBlock) {
-//     // ...
-
-//     if updates, ok := getUpdates(); ok {
-//         for _, update := range updates {
-//             // Convert the update string to a map
-//             var updateMap map[string]interface{}
-//             if err := json.Unmarshal([]byte(update), &updateMap); err != nil {
-//                 fmt.Println("\n ⚠️ Error decoding update:", err)
-// 				fmt.Println("\n ⚠️ update: %s\n", update)
-//                 continue
-//             }
-
-
-//             // Accessing specific fields based on their keys
-//             if updateType, ok := updateMap["Type"].(string); ok {
-//                 // fmt.Println("\n Update Type:", updateType)
-// 				// fmt.Println("\n Update:", update)
-
-//                 // Perform actions based on the update type
-//                 switch updateType {
-// 				case "tank":
-// 					updateTank(tanks, updateMap)
-
-// 				case "levelNum":
-// 					if *levelNum != int(updateMap["levelNum"].(float64)) {
-// 						*levelNum = int(updateMap["levelNum"].(float64))
-// 						*levelObjects = levels.GetLevelObjects(int(updateMap["levelNum"].(float64)))
-// 					}
-
-// 				case "levelObject":
-// 					updateLevelObjects(levelObjects, updateMap)
-
-// 				default:
-// 					fmt.Println("\n ⚠️ Unknown update type:", updateType)
-// 				}
-// 			} else {
-// 				fmt.Println("\n ⚠️ Update Type not found or not a string.")
-// 			}
-
-            
-//         }
-//     }
-// }
-
-
-
-
-// func handleServerUpdate(update string) {
-//     // Implement your logic to handle server updates and update the local game state
-//     // Example: Parse update and update player positions, game events, etc.
-// }
-
-
-
 // Coop logic
 func becomePlayer2() {
 	player   = 2
@@ -681,11 +627,9 @@ func becomePlayer2() {
 func doesPlayer2Exist(tanks []actors.Tank) bool {
     for _, tank := range tanks {
         if tank.Name == "player2" {
-            // Player2 already exists
             return true
         }
     }
 
-    // Player2 does not exist
     return false
 }

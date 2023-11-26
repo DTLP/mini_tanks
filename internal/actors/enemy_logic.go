@@ -54,7 +54,7 @@ func UpdateEnemyLogic(tanks *[]Tank, levelObjects []levels.LevelBlock) {
 				aimAtTarget(t, angleToBase)
 				if math.Abs(t.Turret.Angle-angleToBase) <= turretAngleTolerance &&
 							t.Turret.ReloadTimer == 0 {
-					shoot(t)
+					// shoot(t)
 				}
 			}
 
@@ -66,7 +66,7 @@ func UpdateEnemyLogic(tanks *[]Tank, levelObjects []levels.LevelBlock) {
 				aimAtTarget(t, angleToPlayer)
 				if math.Abs(t.Turret.Angle-angleToPlayer) <= turretAngleTolerance &&
 							t.Turret.ReloadTimer == 0 {
-					shoot(t)
+					// shoot(t)
 				}
             }
         }

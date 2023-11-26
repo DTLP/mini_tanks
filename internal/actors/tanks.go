@@ -343,20 +343,20 @@ func shoot(t *Tank) {
 
 
 type TankUpdate struct {
-    Type        string   `json:"Type"`
-    X        	float64  `json:"X"`
-    Y		  	float64  `json:"Y"`
-    Name        string   `json:"Name"`
-    HullAngle		float64  `json:"HullAngle"`
-    HullCollisionX1 float64  `json:"X1"`
-    HullCollisionY1 float64  `json:"Y1"`
-    HullCollisionX2 float64  `json:"X2"`
-    HullCollisionY2 float64  `json:"Y2"`
-    HullCollisionX3 float64  `json:"X3"`
-    HullCollisionY3 float64  `json:"Y3"`
-    HullCollisionX4 float64  `json:"X4"`
-    HullCollisionY4 float64  `json:"Y4"`
-    TurretAngle     float64  `json:"TurretAngle"`
-    Projectiles     []Projectile `json:"Projectiles"`
-    Explosions      []Explosion  `json:"Explosions"`
+    Type         string   `json:"Type"`
+    X        	 float64  `json:"X"`
+    Y		  	 float64  `json:"Y"`
+    Name         string   `json:"Name"`
+    HullAngle    float64  `json:"HullAngle"`
+    X1           float64  `json:"X1"`
+    Y1           float64  `json:"Y1"`
+    X2           float64  `json:"X2"`
+    Y2           float64  `json:"Y2"`
+    X3           float64  `json:"X3"`
+    Y3           float64  `json:"Y3"`
+    X4           float64  `json:"X4"`
+    Y4           float64  `json:"Y4"`
+    TurretAngle  float64  `json:"TurretAngle"`
+    Projectiles  []Projectile `json:"Projectiles"`
+    Explosions   []Explosion  `json:"Explosions"`
 }
