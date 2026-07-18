@@ -32,7 +32,7 @@ func HandleCollision(tanks *[]Tank, levelObjects []levels.LevelBlock) {
 
             // Turn enemy tanks randomly to the left or right if they collide
             // with level objects. That way they can keep moving towards the base
-            if !(*tanks)[ti].Player {
+            if !(*tanks)[ti].IsPlayer {
                 // Check if enough time has passed since the last collision
                 if time.Since((*tanks)[ti].LastCollisionTime) > time.Second {
                     // Randomly turn left or right
@@ -162,8 +162,8 @@ func dotProduct(v1, v2 Vector) float64 {
 
 func moveActorToPreviousPosition(tank *Tank) {
     // Avoid getting tanks stuck next to level objects
-    tank.Hull.X = tank.Hull.PrevX
-    tank.Hull.Y = tank.Hull.PrevY
+    tank.X = tank.PrevX
+    tank.Y = tank.PrevY
 }
 
 func checkProjectileCollisions(tanks *[]Tank, levelObjects []levels.LevelBlock) {
@@ -227,10 +227,16 @@ func hasProjectileCollidedWithActor(pX, pY float64, tanks *[]Tank, originatingTa
             continue
         }
 
+        // Players don't damage each other in coop.
+        if originatingTank.IsPlayer && tank.IsPlayer {
+            continue
+        }
+
         if checkCollision(pX, pY, tank.Hull.CollisionX1, tank.Hull.CollisionY1, tank.Hull.CollisionX2, tank.Hull.CollisionY2,
             tank.Hull.CollisionX3, tank.Hull.CollisionY3, tank.Hull.CollisionX4, tank.Hull.CollisionY4, tank.Hull.Angle) {
             // Collision occurred
             tank.Health -= 50
+            tank.LastDamagedBy = originatingTank.Name
 
             return true
         }
@@ -243,11 +249,14 @@ func checkCollision(pX, pY, x1, y1, x2, y2, x3, y3, x4, y4, tankAngle float64) b
     rotatedPX := math.Cos(-tankAngle)*(pX-x1) - math.Sin(-tankAngle)*(pY-y1) + x1
     rotatedPY := math.Sin(-tankAngle)*(pX-x1) + math.Cos(-tankAngle)*(pY-y1) + y1
 
-    // Calculate vectors from point 1 to the other corners of the rectangle
+    // Calculate vectors from point 1 to the adjacent corners of the rectangle.
+    // Corner 2 and corner 4 are adjacent to corner 1; corner 3 is the
+    // diagonal opposite and must NOT be used as a basis vector (it leaves a
+    // blind quadrant where bullets pass through without registering).
     vector1X := x2 - x1
     vector1Y := y2 - y1
-    vector2X := x3 - x1
-    vector2Y := y3 - y1
+    vector2X := x4 - x1
+    vector2Y := y4 - y1
 
     // Calculate vectors from point 1 to the rotated projectile point
     vectorPX := rotatedPX - x1

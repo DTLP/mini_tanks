@@ -33,14 +33,14 @@ func UpdateEnemyLogic(tanks *[]Tank, levelObjects []levels.LevelBlock) {
     // Separate players from non-players
     for i := range *tanks {
         t := &(*tanks)[i]
-        if t.Player {
+        if t.IsPlayer {
             players = append(players, *t)
         }
     }
 
     for i := range *tanks {
         t := &(*tanks)[i]
-        if !t.Player {
+        if !t.IsPlayer {
             // Calculate angle to player's base
             angleToBase = calculateAngle(t, playerBaseX, playerBaseY)
             
@@ -59,9 +59,9 @@ func UpdateEnemyLogic(tanks *[]Tank, levelObjects []levels.LevelBlock) {
 			}
 
             // Shoot player tanks if can see them
-            if isPlayerInSight(t, players, levelObjects) {
-                // Calculate angle to player
-                angleToPlayer := calculateAngle(t, players[0].Hull.X, players[0].Hull.Y)
+            if idx, inSight := isPlayerInSight(t, players, levelObjects); inSight {
+                // Calculate angle to the nearest player in sight
+                angleToPlayer := calculateAngle(t, players[idx].X, players[idx].Y)
 				// Aim at player
 				aimAtTarget(t, angleToPlayer)
 				if math.Abs(t.Turret.Angle-angleToPlayer) <= turretAngleTolerance &&
@@ -75,8 +75,8 @@ func UpdateEnemyLogic(tanks *[]Tank, levelObjects []levels.LevelBlock) {
 
 func calculateAngle(t *Tank, targetX, targetY float64) float64 {
     // Calculate angle between tank and target
-    deltaX := t.Hull.X - targetX
-    deltaY := t.Hull.Y - targetY
+    deltaX := t.X - targetX
+    deltaY := t.Y - targetY
     angle := math.Atan2(deltaY, deltaX) * 180 / math.Pi - 180
 
     return angle
@@ -84,8 +84,8 @@ func calculateAngle(t *Tank, targetX, targetY float64) float64 {
 
 func isCloseToPlayerBase(t *Tank, targetX, targetY float64) bool {
     // Calculate distance between tank and player base
-	deltaX := targetX - t.Hull.X
-    deltaY := targetY - t.Hull.Y
+	deltaX := targetX - t.X
+    deltaY := targetY - t.Y
     distance := math.Sqrt(deltaX*deltaX + deltaY*deltaY)
 
     // Check if the distance is less than the threshold
@@ -116,28 +116,37 @@ func moveTank(tank *Tank, targetAngle float64) {
 	tank.Hull.Angle += rotationAmount
 
 	// Move the tank forward
-	tank.Hull.PrevX = tank.Hull.X
-	tank.Hull.PrevY = tank.Hull.Y
-	tank.Hull.X += tank.Hull.Speed * math.Cos(-tank.Hull.Angle*math.Pi/180.0)
-	tank.Hull.Y += tank.Hull.Speed * math.Sin(tank.Hull.Angle*math.Pi/180.0)
-    // Update the turret's position relative to the base
-    tank.Turret.X = tank.Hull.X
-    tank.Turret.Y = tank.Hull.Y
+	tank.PrevX = tank.X
+	tank.PrevY = tank.Y
+	tank.X += tank.Hull.Speed * math.Cos(-tank.Hull.Angle*math.Pi/180.0)
+	tank.Y += tank.Hull.Speed * math.Sin(tank.Hull.Angle*math.Pi/180.0)
 
 	// Update collision box
 	updateCollisionBox(tank)
 }
 
 
-func isPlayerInSight(t *Tank, players []Tank, levelObjects []levels.LevelBlock) bool {
-	for _, player := range players {
-		if !isObstacleBetween(t, player, levelObjects) {
-			return true
+// isPlayerInSight returns the index of the nearest player with a clear line of
+// sight and whether one exists.
+func isPlayerInSight(t *Tank, players []Tank, levelObjects []levels.LevelBlock) (int, bool) {
+	bestIdx := -1
+	bestDistSq := math.MaxFloat64
+	for i, player := range players {
+		if isObstacleBetween(t, player, levelObjects) {
+			continue
+		}
+
+		// Prefer the closest visible player.
+		deltaX := player.X - t.X
+		deltaY := player.Y - t.Y
+		distSq := deltaX*deltaX + deltaY*deltaY
+		if distSq < bestDistSq {
+			bestDistSq = distSq
+			bestIdx = i
 		}
 	}
 
-	// No player in sight
-	return false
+	return bestIdx, bestIdx >= 0
 }
 
 func isObstacleBetween(t *Tank, player Tank, levelObjects []levels.LevelBlock) bool {
@@ -159,8 +168,8 @@ func doLinesIntersect(t *Tank, player Tank, line levels.Line) bool {
     // Define the four points of the two lines
     p1 := Point{X: line.X1, Y: line.Y1}
     q1 := Point{X: line.X2, Y: line.Y2}
-    p2 := Point{X: t.Hull.X, Y: t.Hull.Y}
-    q2 := Point{X: player.Hull.X, Y: player.Hull.Y}
+    p2 := Point{X: t.X, Y: t.Y}
+    q2 := Point{X: player.X, Y: player.Y}
 
     // Find the orientations for each triplet of points
     o1 := orientation(p1, q1, p2)

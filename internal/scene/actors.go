@@ -72,8 +72,8 @@ func drawHealthBar(t *actors.Tank, screen *ebiten.Image) {
     }
 
     op := &ebiten.DrawImageOptions{}
-    op.GeoM.Translate(float64(t.Hull.X / gameLogicToScreenXOffset - 32),
-			float64(t.Hull.Y / gameLogicToScreenYOffset + 35))
+    op.GeoM.Translate(float64(t.X / gameLogicToScreenXOffset - 32),
+			float64(t.Y / gameLogicToScreenYOffset + 35))
     screen.DrawImage(ebiten.NewImageFromImage(filledRect), op)
 
 }
@@ -106,8 +106,8 @@ func drawReloadBar(t *actors.Tank, screen *ebiten.Image) {
     }
 
     op := &ebiten.DrawImageOptions{}
-    op.GeoM.Translate(float64(t.Hull.X / gameLogicToScreenXOffset - 32),
-			float64(t.Hull.Y / gameLogicToScreenYOffset + 40))
+    op.GeoM.Translate(float64(t.X / gameLogicToScreenXOffset - 32),
+			float64(t.Y / gameLogicToScreenYOffset + 40))
     screen.DrawImage(ebiten.NewImageFromImage(filledRect), op)
 
 }
@@ -124,7 +124,7 @@ func drawTankHull(t *actors.Tank, screen *ebiten.Image) {
     // Rotate the hull
     op.GeoM.Rotate(t.Hull.Angle * math.Pi / 180.0)
     // Translate to the final position
-    op.GeoM.Translate(t.Hull.X, t.Hull.Y)
+    op.GeoM.Translate(t.X, t.Y)
     // Scale tank's hull
     op.GeoM.Scale(float64(t.Hull.Width)/float64(bodyImg.Bounds().Dx()), float64(t.Hull.Height)/float64(bodyImg.Bounds().Dy()))
     // Draw tank hull
@@ -159,7 +159,7 @@ func drawTankTurret(t *actors.Tank, screen *ebiten.Image) {
 
     op.GeoM.Translate(-turretOffsetX, -turretOffsetY)
     op.GeoM.Rotate(t.Turret.Angle * math.Pi / 180.0)
-    op.GeoM.Translate(t.Turret.X, t.Turret.Y)
+    op.GeoM.Translate(t.X, t.Y)
     op.GeoM.Scale(float64(t.Turret.Width)/float64(turretImg.Bounds().Dx()), float64(t.Turret.Height)/float64(turretImg.Bounds().Dy()))
     screen.DrawImage(turretImg, op)
 
@@ -173,41 +173,23 @@ func drawTankTurret(t *actors.Tank, screen *ebiten.Image) {
 }
 
 func drawTankPojectiles(t *actors.Tank, screen *ebiten.Image) {
-	// turretImg, _, _ := ebitenutil.NewImageFromFile(t.Turret.Image)
-
-    // Calculate the offset to the center of the tank turret
-    turretOffsetX := float64(turretImg.Bounds().Dx()) / 2
-    turretOffsetY := float64(turretImg.Bounds().Dy()) / 2
+    // Center the projectile sprite on its own collision-tested point. Using
+    // the turret image offsets here (256x256, half=128) placed the visible
+    // bullet up to ~128px away from where collision is actually tested, so
+    // bullets appeared to fly through tanks without registering.
+    projImgHalfW := float64(projectileImg.Bounds().Dx()) / 2
+    projImgHalfH := float64(projectileImg.Bounds().Dy()) / 2
 
     for _, projectile := range t.Projectiles {
         screenX := projectile.X / gameLogicToScreenXOffset
         screenY := projectile.Y / gameLogicToScreenYOffset
 
-
-        // Spawn projectile at turret's center facing same way as turret
         op := &ebiten.DrawImageOptions{}
-        op.GeoM.Translate(-turretOffsetX, -turretOffsetY)
-        projectileAngleRad := projectile.Angle * math.Pi / 180.0
-        op.GeoM.Rotate(projectileAngleRad)
-
-        // Adjust the translation based on projectile angle
-        offsetX := turretOffsetX*math.Cos(projectileAngleRad) - turretOffsetY*math.Sin(projectileAngleRad)
-        offsetY := turretOffsetX*math.Sin(projectileAngleRad) + turretOffsetY*math.Cos(projectileAngleRad)
-
-        op.GeoM.Translate(screenX+offsetX, screenY+offsetY)
+        op.GeoM.Translate(-projImgHalfW, -projImgHalfH)
+        op.GeoM.Rotate(projectile.Angle * math.Pi / 180.0)
+        op.GeoM.Translate(screenX, screenY)
         screen.DrawImage(projectileImg, op)
-
-        // Debugging: Draw a red square at the projectile's position
-        // ebitenutil.DrawRect(screen, screenX, screenY, 5, 5, color.RGBA{255, 0, 0, 255})
     }
-
-    // // Print debugging stuff
-    // reloadTimerStr := fmt.Sprintf("\n\n\nt.Turret.ReloadTimer: %.2f", t.Turret.ReloadTimer)
-    // ebitenutil.DebugPrint(screen, reloadTimerStr)
-    // reloadTimeStr := fmt.Sprintf("\n\n\n\nt.Turret.ReloadTimer: %.2f", t.Turret.ReloadTime)
-    // ebitenutil.DebugPrint(screen, reloadTimeStr)
-    // projectilesStr := fmt.Sprintf("\n\n\n\n\nNumber of projectiles: %d", len(projectiles))
-    // ebitenutil.DebugPrint(screen, projectilesStr)
 }
 
 func drawExplosions(t *actors.Tank, screen *ebiten.Image) {
@@ -243,6 +225,12 @@ func drawExplosions(t *actors.Tank, screen *ebiten.Image) {
 func DrawKillFeed(screen *ebiten.Image) {
     currentTime := time.Now()
     y := 50
+    // Space glyphs often have no ink bounds, so text.BoundString under-reports
+    // their width. Render the connector with explicit pixel padding instead.
+    destroyedText := "destroyed"
+    destroyedBounds := text.BoundString(mplusNormalFont, destroyedText)
+    destroyedWidth := destroyedBounds.Max.X - destroyedBounds.Min.X
+    const pad = 12 // pixels of space around the "destroyed" word
 
     // Iterate over the kill feed entries
     for i, entry := range actors.TanksKilled {
@@ -251,24 +239,33 @@ func DrawKillFeed(screen *ebiten.Image) {
 
         // Display the entry if it's less than 5 seconds old
         if timeDiff < 5*time.Second {
+            attackerDisplayName := displayName(entry.KilledBy)
+            victimDisplayName := displayName(entry.TankName)
 
-            isPlayer := strings.Contains(entry.TankName, "player")
             // Set text color based on whether it's a player or an enemy
-            textColor := color.RGBA{255, 255, 255, 255} // Default to white
-            if isPlayer {
-                textColor = color.RGBA{0, 0, 255, 255} // Blue
-            } else {
-                textColor = color.RGBA{255, 0, 0, 255} // Red
+            victimColor := color.RGBA{255, 0, 0, 255} // Red for enemies
+            if strings.Contains(entry.TankName, "player") {
+                victimColor = color.RGBA{0, 0, 255, 255} // Blue for players
             }
 
-            // Calculate the width of the tank name
-            bounds := text.BoundString(mplusNormalFont, entry.TankName)
-            msgWidth := bounds.Max.X - bounds.Min.X
+            attackerColor := color.RGBA{255, 0, 0, 255} // Red for enemies
+            if strings.Contains(entry.KilledBy, "player") {
+                attackerColor = color.RGBA{0, 0, 255, 255} // Blue for players
+            }
 
-            // Draw the tank name with the specified color
-            text.Draw(screen, entry.TankName, mplusNormalFont, 20, y, textColor)
-            // Append the "destroyed" text in white after the tank name
-            text.Draw(screen, " destroyed", mplusNormalFont, 20+msgWidth, y, color.White)
+            // Draw the attacker name.
+            attackerBounds := text.BoundString(mplusNormalFont, attackerDisplayName)
+            attackerWidth := attackerBounds.Max.X - attackerBounds.Min.X
+            x := 20
+            text.Draw(screen, attackerDisplayName, mplusNormalFont, x, y, attackerColor)
+            x += attackerWidth + pad
+
+            // Draw "destroyed" in white after the attacker name.
+            text.Draw(screen, destroyedText, mplusNormalFont, x, y, color.White)
+            x += destroyedWidth + pad
+
+            // Draw the victim name.
+            text.Draw(screen, victimDisplayName, mplusNormalFont, x, y, victimColor)
 
             // Move to the next line in the kill feed
             y += 30
@@ -276,6 +273,20 @@ func DrawKillFeed(screen *ebiten.Image) {
             // Remove entries older than 5 seconds
             actors.TanksKilled = append(actors.TanksKilled[:i], actors.TanksKilled[i+1:]...)
         }
+    }
+}
+
+// displayName returns a human-readable name for the kill feed. Player tank
+// internal IDs ("player1"/"player2") are shown as "Player 1"/"Player 2";
+// enemy names are used as-is.
+func displayName(name string) string {
+    switch name {
+    case "player1":
+        return "Player 1"
+    case "player2":
+        return "Player 2"
+    default:
+        return name
     }
 }
 

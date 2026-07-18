@@ -1,54 +1,57 @@
 package scene
 
 import (
-	"github.com/DTLP/mini_tanks/internal/actors"
-	"github.com/DTLP/mini_tanks/internal/levels"
-       
-    // "os"
-    // "io"
 	"fmt"
-	// "bytes"
 	"image"
 	"image/color"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
+
+	"github.com/DTLP/mini_tanks/internal/actors"
+	"github.com/DTLP/mini_tanks/internal/levels"
+
+	// "os"
+	// "io"
+
+	// "bytes"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/vector"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 const (
-    screenWidth  			 = 1000
-    screenHeight 			 = 1000
-    minXCoordinates 		 = 270
-    minYCoordinates 		 = 270
-    gameLogicToScreenXOffset = 5.12
-    gameLogicToScreenYOffset = 5.12
-    padding      			 = 20
+	screenWidth              = 1000
+	screenHeight             = 1000
+	minXCoordinates          = 270
+	minYCoordinates          = 270
+	gameLogicToScreenXOffset = 5.12
+	gameLogicToScreenYOffset = 5.12
+	padding                  = 20
 )
 
 type GameState int
 
 const (
-    GameStateMainMenu GameState = iota
-    GameStateGameplay
-    GameStateSettings
+	GameStateMainMenu GameState = iota
+	GameStateGameplay
+	GameStateSettings
 )
 
 var (
-	logoImg, bgImage *ebiten.Image
+	logoImg, bgImage                                           *ebiten.Image
 	playButtonImg, exitButtonImg, soloButtonImg, coopButtonImg *ebiten.Image
-	shadowImage   = ebiten.NewImage(screenWidth, screenHeight)
-	triangleImage = ebiten.NewImage(screenWidth, screenHeight)
+	hostButtonImg, joinButtonImg, backButtonImg                *ebiten.Image
+	shadowImage                                                = ebiten.NewImage(screenWidth, screenHeight)
+	triangleImage                                              = ebiten.NewImage(screenWidth, screenHeight)
 )
 
-var (
-	mplusNormalFont, mplusSmallFont  font.Face
-)
+var mplusNormalFont, mplusSmallFont font.Face
 
 func DrawScreen(levelNum int, screen *ebiten.Image) {
-    screen.Fill(color.RGBA{240, 222, 180, 255}) // Desert background
+	screen.Fill(color.RGBA{240, 222, 180, 255}) // Desert background
 	// Reset the shadowImage
 	shadowImage.Fill(color.RGBA{50, 50, 50, 255}) // Grey shadowns
 	// Draw level number
@@ -59,7 +62,6 @@ func DrawScreen(levelNum int, screen *ebiten.Image) {
 }
 
 func DrawLevel(levelObjects []levels.LevelBlock, tankX, tankY float64, screen *ebiten.Image) {
-
 	drawShadows(levelObjects, tankX, tankY, screen)
 
 	drawLevelObjects(levelObjects, screen)
@@ -84,8 +86,8 @@ func drawShadows(levelObjects []levels.LevelBlock, tankX, tankY float64, screen 
 	}
 
 	rays := rayCasting(
-		float64(tankX / gameLogicToScreenXOffset),
-		float64(tankY / gameLogicToScreenYOffset),
+		float64(tankX/gameLogicToScreenXOffset),
+		float64(tankY/gameLogicToScreenYOffset),
 		blocks,
 	)
 
@@ -97,7 +99,7 @@ func drawShadows(levelObjects []levels.LevelBlock, tankX, tankY float64, screen 
 		nextLine := rays[(i+1)%len(rays)]
 
 		// Draw triangle of area between rays
-		v := rayVertices(float64(tankX / gameLogicToScreenXOffset), float64(tankY / gameLogicToScreenYOffset), nextLine.X2, nextLine.Y2, line.X2, line.Y2)
+		v := rayVertices(float64(tankX/gameLogicToScreenXOffset), float64(tankY/gameLogicToScreenYOffset), nextLine.X2, nextLine.Y2, line.X2, line.Y2)
 		shadowImage.DrawTriangles(v, []uint16{0, 1, 2}, triangleImage, opt)
 	}
 
@@ -116,43 +118,43 @@ func drawShadows(levelObjects []levels.LevelBlock, tankX, tankY float64, screen 
 
 func drawLevelObjects(levelObjects []levels.LevelBlock, screen *ebiten.Image) {
 	for _, object := range levelObjects {
-        // Skip destroyed blocks
-        if !object.Border && object.Health == 0 {
-            continue
-        }
+		// Skip destroyed blocks
+		if !object.Border && object.Health == 0 {
+			continue
+		}
 
 		originalImg, _, _ := ebitenutil.NewImageFromFile(object.Image.Path)
 
 		// Create a new image representing a sub-image of the original image
 		subImg := originalImg.SubImage(image.Rect(object.Image.X, object.Image.Y,
-					object.Image.Width, object.Image.Height)).(*ebiten.Image)
+			object.Image.Width, object.Image.Height)).(*ebiten.Image)
 		// Draw the sub-image on the screen
 		options := &ebiten.DrawImageOptions{}
 		options.GeoM.Translate(object.X, object.Y)
 		screen.DrawImage(subImg, options)
-    }
+	}
 }
 
 // func drawDebugStuffLevels(levelObjects []levels.LevelBlock, screen *ebiten.Image) {
-	// // Draw walls - raycasting red lines
-	// for _, obj := range levelObjects {
-	// 	for _, block := range obj.Blocks {
-	// 		for _, w := range block.Walls {
-	// 			vector.StrokeLine(screen, float32(w.X1), float32(w.Y1), float32(w.X2), float32(w.Y2), 1, color.RGBA{255, 0, 0, 255}, true)
-	// 		}
-	// 	}
-	// }
+// // Draw walls - raycasting red lines
+// for _, obj := range levelObjects {
+// 	for _, block := range obj.Blocks {
+// 		for _, w := range block.Walls {
+// 			vector.StrokeLine(screen, float32(w.X1), float32(w.Y1), float32(w.X2), float32(w.Y2), 1, color.RGBA{255, 0, 0, 255}, true)
+// 		}
+// 	}
+// }
 // }
 
 func init() {
 	tt, _ := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	mplusNormalFont, _ = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     100,
+		Size: 24,
+		DPI:  100,
 	})
 	mplusSmallFont, _ = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    12,
-		DPI:     100,
+		Size: 12,
+		DPI:  100,
 	})
 
 	// Load images
@@ -164,12 +166,25 @@ func init() {
 	soloButtonImg = soloButtonImage
 	coopButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/coop_button.png")
 	coopButtonImg = coopButtonImage
+	hostButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/host_button.png")
+	hostButtonImg = hostButtonImage
+	joinButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/join_button.png")
+	joinButtonImg = joinButtonImage
+	backButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/back_button.png")
+	backButtonImg = backButtonImage
 	exitButtonImage, _, _ := ebitenutil.NewImageFromFile("resources/exit_game_button.png")
 	exitButtonImg = exitButtonImage
 }
 
-func DrawLevelZero(screen *ebiten.Image) {
+// MenuState carries netplay menu text owned by package game. The scene package
+// cannot read game's package-private variables, so DrawMainMenu receives them
+// as arguments and passes them down to drawMenuButtons.
+type MenuState struct {
+	JoinAddr      string
+	StatusMessage string
+}
 
+func DrawMainMenu(tanks []actors.Tank, menuStage string, ms MenuState, screen *ebiten.Image) {
 	// Draw Game logo
 	logoOp := &ebiten.DrawImageOptions{}
 	logoOp.GeoM.Scale(.25, .25)
@@ -178,7 +193,7 @@ func DrawLevelZero(screen *ebiten.Image) {
 
 	drawKeyboard(screen)
 
-	drawMenuButtons(screen)
+	drawMenuButtons(tanks, menuStage, ms, screen)
 
 	credsText := "github.com/DTLP"
 	text.Draw(screen, credsText, mplusNormalFont, 700, 50, color.Black)
@@ -190,7 +205,6 @@ func drawKeyboard(screen *ebiten.Image) {
 	colorBg := color.RGBA{240, 222, 180, 255}
 	// colorPink := color.RGBA{255, 180, 180, 255}
 	colorPressed := color.RGBA{240, 205, 130, 255}
-
 
 	// Key W
 	ebitenutil.DrawRect(screen, 80, 350, keySize, keySize, color.Black)
@@ -263,17 +277,16 @@ func drawKeyboard(screen *ebiten.Image) {
 
 	keyControlsText := "Move                   Shoot                  Aim"
 	text.Draw(screen, keyControlsText, mplusSmallFont, 75, 420, color.Black)
-
 }
 
-func drawMenuButtons(screen *ebiten.Image) {
+func drawMenuButtons(tanks []actors.Tank, menuStage string, ms MenuState, screen *ebiten.Image) {
 	// Play
-	if actors.MenuStage == "init" {
+	if menuStage == "init" {
 		buttonPlayOp := &ebiten.DrawImageOptions{}
 		buttonPlayOp.GeoM.Translate(700, 450)
 		screen.DrawImage(playButtonImg, buttonPlayOp)
 	}
-	if actors.MenuStage == "play" {
+	if menuStage == "play" {
 		// Solo
 		buttonSoloOp := &ebiten.DrawImageOptions{}
 		buttonSoloOp.GeoM.Translate(700, 450)
@@ -281,11 +294,92 @@ func drawMenuButtons(screen *ebiten.Image) {
 		// Co-op
 		buttonCoopOp := &ebiten.DrawImageOptions{}
 		buttonCoopOp.GeoM.Translate(700, 550)
-		alpha := float64(128) / 255.0
-		buttonCoopOp.ColorM.Scale(1, 1, 1, alpha)
+		// alpha := float64(128) / 255.0
+		// buttonCoopOp.ColorM.Scale(1, 1, 1, alpha)
 		screen.DrawImage(coopButtonImg, buttonCoopOp)
 		// Exit
 	}
+	if menuStage == "coop" {
+		// Host
+		buttonHostOp := &ebiten.DrawImageOptions{}
+		buttonHostOp.GeoM.Translate(700, 450)
+		screen.DrawImage(hostButtonImg, buttonHostOp)
+		// Join
+		buttonJoinOp := &ebiten.DrawImageOptions{}
+		buttonJoinOp.GeoM.Translate(700, 550)
+		screen.DrawImage(joinButtonImg, buttonJoinOp)
+		// Back
+		buttonBackOp := &ebiten.DrawImageOptions{}
+		buttonBackOp.GeoM.Translate(700, 650)
+		screen.DrawImage(backButtonImg, buttonBackOp)
+	}
+	if menuStage == "host" {
+		if actors.CountPlayerTanks(tanks) == 2 {
+			// Play button
+			buttonPlayOp := &ebiten.DrawImageOptions{}
+			buttonPlayOp.GeoM.Translate(700, 450)
+			screen.DrawImage(playButtonImg, buttonPlayOp)
+		}
+		// Back
+		buttonBackOp := &ebiten.DrawImageOptions{}
+		buttonBackOp.GeoM.Translate(700, 650)
+		screen.DrawImage(backButtonImg, buttonBackOp)
+	}
+	if menuStage == "host_wait" {
+		waitText := "Waiting for player 2 to connect..."
+		textWidth := text.BoundString(mplusNormalFont, waitText).Max.X
+		textX := (screenWidth - textWidth) / 2
+		text.Draw(screen, waitText, mplusNormalFont, textX, 480, color.White)
+		text.Draw(screen, "Press Esc to cancel.", mplusNormalFont, textX, 520, color.White)
+	}
+	if menuStage == "join_input" {
+		joinPrompt := "Enter IP:port:"
+		promptW := text.BoundString(mplusNormalFont, joinPrompt).Max.X
+		textX := (screenWidth - promptW) / 2
+		text.Draw(screen, joinPrompt, mplusNormalFont, textX, 470, color.White)
+
+		// Address bar: a centered input field with a dark background and a
+		// light border so it reads as an editable field rather than text.
+		const boxW, boxH = 560, 56
+		boxX := (screenWidth - boxW) / 2
+		boxY := 485
+
+		field := ebiten.NewImage(boxW, boxH)
+		field.Fill(color.RGBA{20, 20, 20, 255})
+		fieldOp := &ebiten.DrawImageOptions{}
+		fieldOp.GeoM.Translate(float64(boxX), float64(boxY))
+		screen.DrawImage(field, fieldOp)
+
+		border := color.RGBA{200, 200, 200, 255}
+		bx := float32(boxX)
+		by := float32(boxY)
+		bw := float32(boxW)
+		bh := float32(boxH)
+		vector.StrokeLine(screen, bx, by, bx+bw, by, 2, border, true)       // top
+		vector.StrokeLine(screen, bx, by+bh, bx+bw, by+bh, 2, border, true) // bottom
+		vector.StrokeLine(screen, bx, by, bx, by+bh, 2, border, true)       // left
+		vector.StrokeLine(screen, bx+bw, by, bx+bw, by+bh, 2, border, true) // right
+
+		// Address text + blinking-style cursor inside the field.
+		text.Draw(screen, ms.JoinAddr+"_", mplusNormalFont, boxX+12, boxY+38, color.White)
+
+		hint := "Enter to connect   Esc to back"
+		text.Draw(screen, hint, mplusSmallFont, textX, 560, color.White)
+		if ms.StatusMessage != "" {
+			text.Draw(screen, ms.StatusMessage, mplusSmallFont, textX, 585, color.RGBA{255, 0, 0, 255})
+		}
+	}
+	if menuStage == "join_connect" {
+		connectText := "Connecting to " + ms.JoinAddr + "..."
+		textWidth := text.BoundString(mplusNormalFont, connectText).Max.X
+		textX := (screenWidth - textWidth) / 2
+		text.Draw(screen, connectText, mplusNormalFont, textX, 480, color.White)
+		text.Draw(screen, "Esc to back", mplusNormalFont, textX, 520, color.White)
+		if ms.StatusMessage != "" {
+			text.Draw(screen, ms.StatusMessage, mplusSmallFont, textX, 545, color.RGBA{255, 0, 0, 255})
+		}
+	}
+	// Exit
 	buttonExitOp := &ebiten.DrawImageOptions{}
 	buttonExitOp.GeoM.Translate(700, 875)
 	screen.DrawImage(exitButtonImg, buttonExitOp)
@@ -303,10 +397,32 @@ func DrawGameOverScreen(screen *ebiten.Image) {
 	textY := (screenHeight - textHeight) / 2
 	text.Draw(screen, gameOverText, mplusNormalFont, textX, textY, color.White)
 
-	gameOverText = "Press Enter to try again"
+	gameOverText = "Press Enter to try exit to main menu"
 	textWidth = text.BoundString(mplusNormalFont, gameOverText).Max.X
 	textHeight = text.BoundString(mplusNormalFont, "A").Max.Y
 	textX = (screenWidth - textWidth) / 2
 	textY = (screenHeight - textHeight) / 2
-	text.Draw(screen, gameOverText, mplusNormalFont, textX, textY + 100, color.White)
+	text.Draw(screen, gameOverText, mplusNormalFont, textX, textY+100, color.White)
+}
+
+// DrawStatusOverlay dims the whole screen and centers a title/subtitle pair,
+// mirroring the style of DrawGameOverScreen (full-screen backdrop plus centered
+// text) while keeping the world visible underneath.
+func DrawStatusOverlay(screen *ebiten.Image, title, subtitle string) {
+	// Semi-transparent black overlay across the whole screen.
+	overlay := ebiten.NewImage(screenWidth, screenHeight)
+	overlay.Fill(color.RGBA{0, 0, 0, 180})
+	screen.DrawImage(overlay, nil)
+
+	// Title
+	titleWidth := text.BoundString(mplusNormalFont, title).Max.X
+	titleHeight := text.BoundString(mplusNormalFont, "A").Max.Y
+	titleX := (screenWidth - titleWidth) / 2
+	titleY := (screenHeight - titleHeight) / 2
+	text.Draw(screen, title, mplusNormalFont, titleX, titleY, color.White)
+
+	// Subtitle
+	subtitleWidth := text.BoundString(mplusSmallFont, subtitle).Max.X
+	subtitleX := (screenWidth - subtitleWidth) / 2
+	text.Draw(screen, subtitle, mplusSmallFont, subtitleX, titleY+100, color.RGBA{200, 200, 200, 255})
 }
