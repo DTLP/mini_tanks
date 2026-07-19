@@ -38,6 +38,7 @@ type Tank struct {
     Y               float64
     PrevX           float64
     PrevY           float64
+    PrevHullAngle   float64
     MaxHealth       int
     Health          int
     HealthBarWidth  int

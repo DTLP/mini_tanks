@@ -161,9 +161,16 @@ func dotProduct(v1, v2 Vector) float64 {
 }
 
 func moveActorToPreviousPosition(tank *Tank) {
-    // Avoid getting tanks stuck next to level objects
+    // Avoid getting tanks stuck next to level objects. Restore both the
+    // previous position and the previous hull angle: a rotation alone (which
+    // doesn't change X/Y) can collide with a wall, and if only X/Y were
+    // restored the new angle would stick, leaving the corners overlapping
+    // and the tank wedged. Recompute the collision box so the corner fields
+    // reflect the safe state for the next frame.
     tank.X = tank.PrevX
     tank.Y = tank.PrevY
+    tank.Hull.Angle = tank.PrevHullAngle
+    updateCollisionBox(tank)
 }
 
 func checkProjectileCollisions(tanks *[]Tank, levelObjects []levels.LevelBlock) {

@@ -42,16 +42,19 @@ func ReadLocalInput() Input {
 func ApplyInput(t *Tank, in *Input) {
     if t.CanMove {
         if in.HullLeft {
+            t.PrevHullAngle = t.Hull.Angle
             t.Hull.Angle -= t.Hull.RotationSpeed
             updateCollisionBox(t)
         }
         if in.HullRight {
+            t.PrevHullAngle = t.Hull.Angle
             t.Hull.Angle += t.Hull.RotationSpeed
             updateCollisionBox(t)
         }
         if in.Forward {
             t.PrevX = t.X
             t.PrevY = t.Y
+            t.PrevHullAngle = t.Hull.Angle
             t.X += t.Hull.Speed * math.Cos(-t.Hull.Angle*math.Pi/180.0)
             t.Y += t.Hull.Speed * math.Sin(t.Hull.Angle*math.Pi/180.0)
             updateCollisionBox(t)
@@ -59,6 +62,7 @@ func ApplyInput(t *Tank, in *Input) {
         if in.Back {
             t.PrevX = t.X
             t.PrevY = t.Y
+            t.PrevHullAngle = t.Hull.Angle
             t.X -= t.Hull.ReverseSpeed * math.Cos(-t.Hull.Angle*math.Pi/180.0)
             t.Y -= t.Hull.ReverseSpeed * math.Sin(t.Hull.Angle*math.Pi/180.0)
             updateCollisionBox(t)
