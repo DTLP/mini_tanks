@@ -246,27 +246,35 @@ func hasProjectileCollidedWithActor(pX, pY float64, tanks *[]Tank, originatingTa
 }
 
 func checkCollision(pX, pY, x1, y1, x2, y2, x3, y3, x4, y4, tankAngle float64) bool {
-    rotatedPX := math.Cos(-tankAngle)*(pX-x1) - math.Sin(-tankAngle)*(pY-y1) + x1
-    rotatedPY := math.Sin(-tankAngle)*(pX-x1) + math.Cos(-tankAngle)*(pY-y1) + y1
+    // The collision corners (x1..y4) are already in world/screen space,
+    // rotated by updateCollisionBox. Testing a point against a
+    // rotated rectangle only needs the two adjacent edge vectors from
+    // corner 1; no re-rotation of the point is needed (the edges already
+    // encode the orientation). Re-rotating by -tankAngle here would
+    // double-rotate the point and hit in the wrong place.
 
-    // Calculate vectors from point 1 to the adjacent corners of the rectangle.
-    // Corner 2 and corner 4 are adjacent to corner 1; corner 3 is the
-    // diagonal opposite and must NOT be used as a basis vector (it leaves a
-    // blind quadrant where bullets pass through without registering).
+    // Adjacent edges from corner 1: corner 2 and corner 4.
     vector1X := x2 - x1
     vector1Y := y2 - y1
     vector2X := x4 - x1
     vector2Y := y4 - y1
 
-    // Calculate vectors from point 1 to the rotated projectile point
-    vectorPX := rotatedPX - x1
-    vectorPY := rotatedPY - y1
+    // Vector from corner 1 to the projectile point.
+    vectorPX := pX - x1
+    vectorPY := pY - y1
 
-    // Calculate dot products
+    // Project the point onto each edge and check it lies within the
+    // rectangle both along edge 1->2 and edge 1->4.
     dot1 := vectorPX*vector1X + vectorPY*vector1Y
     dot2 := vectorPX*vector2X + vectorPY*vector2Y
 
-    // Check if the point is inside the rectangle
-    return dot1 >= 0 && dot1 <= vector1X*vector1X+vector1Y*vector1Y &&
-        dot2 >= 0 && dot2 <= vector2X*vector2X+vector2Y*vector2Y
+    // Give the projectile a small footprint instead of testing a single
+    // dimensionless point, so glancing/fast shots register. The hull is a
+    // 50px square so |edge| = 50; a 5px margin in dot-product units is
+    // 5*50 = 250. This only affects projectile-vs-tank, not tank-vs-wall.
+    const hitMargin = 250.0
+
+    // Check if the point is inside the rectangle (with margin)
+    return dot1 >= -hitMargin && dot1 <= vector1X*vector1X+vector1Y*vector1Y+hitMargin &&
+        dot2 >= -hitMargin && dot2 <= vector2X*vector2X+vector2Y*vector2Y+hitMargin
 }

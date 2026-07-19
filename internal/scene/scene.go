@@ -342,7 +342,6 @@ func drawMenuButtons(tanks []actors.Tank, menuStage string, ms MenuState, screen
 		textWidth := text.BoundString(mplusNormalFont, waitText).Max.X
 		textX := (screenWidth - textWidth) / 2
 		text.Draw(screen, waitText, mplusNormalFont, textX, 480, color.White)
-		text.Draw(screen, "Press Esc to cancel.", mplusNormalFont, textX, 520, color.White)
 	}
 	if menuStage == "join_input" {
 		joinPrompt := "Enter IP:port:"
