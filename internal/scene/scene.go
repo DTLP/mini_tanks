@@ -312,6 +312,18 @@ func drawMenuButtons(tanks []actors.Tank, menuStage string, ms MenuState, screen
 		buttonBackOp := &ebiten.DrawImageOptions{}
 		buttonBackOp.GeoM.Translate(700, 650)
 		screen.DrawImage(backButtonImg, buttonBackOp)
+		// Friendly-fire toggle (text button; no PNG asset exists). It sits
+		// below the Back button and doubles as a projectile-clickable target.
+		ffText := "Friendly Fire: OFF"
+		var ffColor color.Color = color.White
+		if actors.FriendlyFire {
+			ffText = "Friendly Fire: ON"
+			ffColor = color.RGBA{255, 0, 0, 255}
+		}
+		ffWidth := text.BoundString(mplusNormalFont, ffText).Max.X
+		// Center the label within the button rect at X=700, Width=250.
+		ffX := 700 + (250-ffWidth)/2
+		text.Draw(screen, ffText, mplusNormalFont, ffX, 775, ffColor)
 	}
 	if menuStage == "host" {
 		if actors.CountPlayerTanks(tanks) == 2 {

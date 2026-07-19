@@ -257,6 +257,7 @@ func (g *Game) fallbackToSolo() {
 	statusVisible = false
 	actors.ResetCounter()
 	actors.ResetEnemyNamePool()
+	actors.FriendlyFire = false
 
 	var tanks []actors.Tank
 	tanks = append(tanks, actors.NewTank("player1"))

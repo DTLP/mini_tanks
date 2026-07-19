@@ -227,8 +227,8 @@ func hasProjectileCollidedWithActor(pX, pY float64, tanks *[]Tank, originatingTa
             continue
         }
 
-        // Players don't damage each other in coop.
-        if originatingTank.IsPlayer && tank.IsPlayer {
+        // Players don't damage each other unless friendly fire is enabled.
+        if originatingTank.IsPlayer && tank.IsPlayer && !FriendlyFire {
             continue
         }
 

@@ -30,6 +30,7 @@ var (
 	hostButton   Coordinates
 	joinButton   Coordinates
 	backButton   Coordinates
+	friendlyFireButton Coordinates
 	exitButton   Coordinates
 )
 
@@ -67,6 +68,12 @@ func init() {
 	backButton = Coordinates{
 		X: 700.0,
 		Y: 650.0,
+		Width: 250.0,
+		Height: 74.0,
+	}
+	friendlyFireButton = Coordinates{
+		X: 700.0,
+		Y: 750.0,
 		Width: 250.0,
 		Height: 74.0,
 	}
@@ -254,6 +261,12 @@ func checkIfMenuButtonIsSelected(tanks *[]actors.Tank, levelNum *int) {
 				if checkMenuCollision(pX, pY, backButton.X, backButton.Y, backButton.X+backButton.Width, backButton.Y+backButton.Height) {
 					(*tanks)[ti].Projectiles[pi].Collided = true
 					menuStage = "play"
+					continue
+				}
+				// Friendly-fire toggle
+				if checkMenuCollision(pX, pY, friendlyFireButton.X, friendlyFireButton.Y, friendlyFireButton.X+friendlyFireButton.Width, friendlyFireButton.Y+friendlyFireButton.Height) {
+					(*tanks)[ti].Projectiles[pi].Collided = true
+					actors.FriendlyFire = !actors.FriendlyFire
 					continue
 				}
 			}
