@@ -408,7 +408,7 @@ func DrawGameOverScreen(screen *ebiten.Image) {
 	textY := (screenHeight - textHeight) / 2
 	text.Draw(screen, gameOverText, mplusNormalFont, textX, textY, color.White)
 
-	gameOverText = "Press Enter to try exit to main menu"
+	gameOverText = "Press Enter to try again"
 	textWidth = text.BoundString(mplusNormalFont, gameOverText).Max.X
 	textHeight = text.BoundString(mplusNormalFont, "A").Max.Y
 	textX = (screenWidth - textWidth) / 2

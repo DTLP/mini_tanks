@@ -354,17 +354,21 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return ScreenWidth, ScreenHeight
 }
 
-// restartGame resets the world to the main menu with only player1. In coop
-// mode the Update loops re-add player2 (host) or rebuild from the next
-// snapshot (client) once play resumes.
+// restartGame resets the world to level 1 so the players can try again. In
+// coop (host) both players are restored; solo keeps just player1.
 func restartGame() ([]actors.Tank, []levels.LevelBlock) {
-	levelNum = 0
+	levelNum = 1
 	gameOver = false
 	actors.ResetCounter()
 	actors.ResetEnemyNamePool()
+	actors.MaxEnemies = 3
 
 	var tanks []actors.Tank
 	tanks = append(tanks, actors.NewTank("player1"))
+	if role == RoleHost {
+		tanks = append(tanks, actors.NewTank("player2"))
+	}
+	actors.ResetPlayerPositions(&tanks)
 	levelObjects = levels.GetLevelObjects(levelNum)
 
 	return tanks, levelObjects
